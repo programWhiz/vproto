@@ -152,7 +152,7 @@ fn sint32_pack(value int) []u8 {
 
 fn uint64_pack(value u64) []u8 {
 	mut hi := u32(value>>32)
-	lo := *(&u32(&value))
+	lo := u32(value)
 	mut res := []u8{}
 	if hi == 0 {
 		return uint32_pack(lo)
@@ -489,7 +489,9 @@ fn string_unpack(buf []u8) (int,string) {
 		return size_len, ''
 	}
 	// Clone here to make sure the string is 0 terminated
-	return int(str_len) + size_len, tos(&buf[size_len], int(str_len)).clone()
+	unsafe {
+		return int(str_len) + size_len, tos(&buf[size_len], int(str_len)).clone()
+	}
 }
 
 fn bytes_unpack(buf []u8) (int,[]u8) {

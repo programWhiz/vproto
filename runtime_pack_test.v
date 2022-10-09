@@ -1,10 +1,10 @@
 module vproto
 
 fn test_pack_wire_type() {
-	w := vproto.WireType._32bit
+	w := WireType._32bit
 	tag := u32(40000)
-	b := vproto.pack_tag_wire_type(tag, w)
-	r := vproto.unpack_tag_wire_type(b) or {
+	b := pack_tag_wire_type(tag, w)
+	r := unpack_tag_wire_type(b) or {
 		panic('$err')
 	}
 	assert r.tag == tag
@@ -18,7 +18,9 @@ fn test_int32_fields() {
 	}
 	assert t.tag == 100
 	assert t.wire_type == .varint
-	i,v := unpack_int32_field(int_field_packed[t.consumed..], .varint)
+	i,v := unpack_int32_field(int_field_packed[t.consumed..], .varint) or {
+		panic('unable to unpack int32 field.')
+	}
 	assert v == 100000
 	assert i == 3
 }
@@ -30,7 +32,9 @@ fn test_sint32_fields() {
 	}
 	assert t.tag == 100
 	assert t.wire_type == .varint
-	i,v := unpack_sint32_field(int_field_packed[t.consumed..], .varint)
+	i,v := unpack_sint32_field(int_field_packed[t.consumed..], .varint) or {
+		panic('unable to unpack signed int32 field.')
+	}
 	assert v == 100000
 	assert i == 3
 }

@@ -78,7 +78,7 @@ pub fn pack_sint64_field(value i64, num u32) []u8 {
 pub fn pack_int64_field(value i64, num u32) []u8 {
 	mut ret := []u8{}
 	ret << pack_tag_wire_type(num, .varint)
-	v := *(&u64(&value))
+	v := u64(value)
 	ret << uint64_pack(v)
 	return ret
 }
@@ -115,13 +115,15 @@ pub fn pack_32bit_field_packed(values array, num u32) []u8 {
 }
 
 pub fn pack_s32bit_field(value &int, num u32) []u8 {
-	return pack_32bit_field(&u32(value), num)
+	unsafe {
+		return pack_32bit_field(&u32(value), num)
+	}
 }
 
 pub fn pack_64bit_field(value &u64, num u32) []u8 {
 	mut ret := []u8{}
 	ret << pack_tag_wire_type(num, ._64bit)
-	v := *(&u64(value))
+	v := *value
 	ret << fixed64_pack(v)
 	return ret
 }
@@ -141,11 +143,15 @@ pub fn pack_s64bit_field(value i64, num u32) []u8 {
 }
 
 pub fn pack_float_field(value f32, num u32) []u8 {
-	return pack_32bit_field(&u32(&value), num)
+	unsafe {
+		return pack_32bit_field(&u32(&value), num)
+	}
 }
 
 pub fn pack_double_field(value f64, num u32) []u8 {
-	return pack_64bit_field(&u64(&value), num)
+	unsafe {
+		return pack_64bit_field(&u64(&value), num)
+	}
 }
 
 pub fn pack_bool_field(value bool, num u32) []u8 {
@@ -179,7 +185,9 @@ pub fn pack_message_field(value []u8, num u32) []u8 {
 // unpacking routines
 
 pub fn unpack_wire_type(b byte) WireType {
-	return WireType(b & 0x7)
+	unsafe {
+		return WireType(b & 0x7)
+	}
 }
 
 struct TagWireType {
@@ -196,7 +204,10 @@ pub fn unpack_tag_wire_type(b []u8) ?TagWireType {
 	if b[0] & 0xf8 == 0 {
 		return error('Invalid tag')
 	}
-	wire_type := WireType(b[0] & 0x7)
+	mut wire_type := WireType{}
+	unsafe {
+		wire_type = WireType(b[0] & 0x7)
+	}
 	if b[0] & 0x80 == 0 {
 		return TagWireType{
 			1,tag,wire_type}
@@ -264,7 +275,9 @@ pub fn unpack_sint64_field(buf []u8, wire_type WireType) ?(int,i64) {
 pub fn unpack_int64_field(buf []u8, wire_type WireType) ?(int,i64) {
 	ensure_wiretype(wire_type, .varint)?
 	i,v := uint64_unpack(buf)
-	return i,*(&i64(&v))
+	unsafe {
+		return i,*(&i64(&v))
+	}
 }
 
 pub fn unpack_uint64_field(buf []u8, wire_type WireType) ?(int,u64) {
@@ -300,23 +313,31 @@ pub fn unpack_64bit_field_packed(buf []u8, wire_type WireType) ?(int,[]u64) {
 pub fn unpack_s32bit_field(buf []u8, wire_type WireType) ?(int,int) {
 	ensure_wiretype(wire_type, ._32bit)?
 	v := fixed32_unpack(buf)
-	return 4,*(&int(&v))
+	unsafe {
+		return 4,*(&int(&v))
+	}
 }
 
 pub fn unpack_s64bit_field(buf []u8, wire_type WireType) ?(int,i64) {
 	ensure_wiretype(wire_type, ._64bit)?
 	v := fixed64_unpack(buf)
-	return 8,*(&i64(&v))
+	unsafe {
+		return 8,*(&i64(&v))
+	}
 }
 
 pub fn unpack_float_field(buf []u8, wire_type WireType) ?(int,f32) {
 	_, v := unpack_32bit_field(buf, wire_type)?
-	return 4,*(&f32(&v))
+	unsafe {
+		return 4,*(&f32(&v))
+	}
 }
 
 pub fn unpack_double_field(buf []u8, wire_type WireType) ?(int,f64) {
 	_, v := unpack_64bit_field(buf, wire_type)?
-	return 8,*(&f64(&v))
+	unsafe {
+		return 8,*(&f64(&v))
+	}
 }
 
 pub fn unpack_bool_field(buf []u8, wire_type WireType) ?(int,bool) {
@@ -368,4 +389,6 @@ pub fn unpack_unknown_field(buf []u8, wire_type WireType) (int, []u8) {
 			return 8, buf[..8]
 		}
 	}
+
+	panic('unmatched wire type')
 }
